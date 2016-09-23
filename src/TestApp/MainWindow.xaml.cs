@@ -37,7 +37,15 @@ namespace TestApp
             GC.Collect();
         }
 
-        private void Display_OnClick(object sender, RoutedEventArgs e) {
+
+        private void Display_OnClick(object sender, RoutedEventArgs e)
+        {
+            foreach (var f in _eventAgrigator.ActiveFiltersForType(typeof(Message1))) {
+                Debug.WriteLine("Filter for Message1: " + f);
+            }
+            
+        }
+        private void Display_OnClick2(object sender, RoutedEventArgs e) {
             Debug.WriteLine("Count for Message1: " + _eventAgrigator.HandlerCountFor(typeof(Message1)));
             Debug.WriteLine("Count for Message2: " + _eventAgrigator.HandlerCountFor(typeof(Message2)));
             Debug.WriteLine("Count for Message3: " + _eventAgrigator.HandlerCountFor(typeof(Message3)));
@@ -73,6 +81,12 @@ namespace TestApp
         private void Message_OnClick(object sender, RoutedEventArgs e)
         {
             Button btn = (Button)sender;
+            _eventAgrigator.PublishOnCurrentThread(new Message1(), "M" + Regex.Replace(btn.Name, "[^0-9.]", ""));
+            //_eventAgrigator.PublishOnCurrentThread(new Message1(), "M1");
+        }
+        private void Message_OnClick2(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender;
             var nmb = int.Parse(Regex.Replace(btn.Name, "[^0-9.]", ""));
             object ob = null;
             switch (nmb)
@@ -94,7 +108,7 @@ namespace TestApp
                     break;
             }
             if (ob != null)
-                _eventAgrigator.PublishOnCurrentThread(ob);
+                _eventAgrigator.PublishOnCurrentThread(ob, "M1");
         }
 
         private void Add_OnClick(object sender, RoutedEventArgs e)
@@ -125,12 +139,12 @@ namespace TestApp
         }
 
         public void Handle(EventAggregator.MessageAdded message) {
-            Debug.WriteLine("MainWindow MessageAdded: "+message.Type.Name+ " Remaining: " + _eventAgrigator.HandlerCountFor(message.Type));
+            Debug.WriteLine("MainWindow MessageAdded: "+message.Type.Name+"-"+message.Filter+ " Remaining: " + _eventAgrigator.HandlerCountFor(message.Type, message.Filter));
         }
 
         public void Handle(EventAggregator.MessageRemoved message)
         {
-            Debug.WriteLine("MainWindow MessageRemoved: " + message.Type.Name + " Remaining: " + _eventAgrigator.HandlerCountFor(message.Type));
+            Debug.WriteLine("MainWindow MessageRemoved: " + message.Type.Name + "-" + message.Filter + " Remaining: " + _eventAgrigator.HandlerCountFor(message.Type, message.Filter));
         }
     }
 }

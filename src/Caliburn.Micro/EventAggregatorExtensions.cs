@@ -11,8 +11,9 @@
         /// </summary>
         /// <param name="eventAggregator">The event aggregator.</param>
         /// <param name = "message">The message instance.</param>
-        public static void PublishOnCurrentThread(this IEventAggregator eventAggregator, object message) {
-            eventAggregator.Publish(message, action => action());
+        /// <param name = "filter">The filter instance.</param>
+        public static void PublishOnCurrentThread(this IEventAggregator eventAggregator, object message, string filter = null) {
+            eventAggregator.Publish(message, action => action(), filter);
         }
         
         /// <summary>
@@ -20,8 +21,10 @@
         /// </summary>
         /// <param name="eventAggregator">The event aggregator.</param>
         /// <param name = "message">The message instance.</param>
-        public static void PublishOnBackgroundThread(this IEventAggregator eventAggregator, object message) {
-            eventAggregator.Publish(message, action => Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default));
+        /// <param name = "filter">The filter instance.</param>
+        public static void PublishOnBackgroundThread(this IEventAggregator eventAggregator, object message, string filter = null)
+        {
+            eventAggregator.Publish(message, action => Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.None, TaskScheduler.Default), filter);
         }
 
         /// <summary>
@@ -29,8 +32,9 @@
         /// </summary>
         /// <param name="eventAggregator">The event aggregator.</param>
         /// <param name = "message">The message instance.</param>
-        public static void PublishOnUIThread(this IEventAggregator eventAggregator, object message) {
-            eventAggregator.Publish(message, Execute.OnUIThread);
+        /// <param name = "filter">The filter instance.</param>
+        public static void PublishOnUIThread(this IEventAggregator eventAggregator, object message, string filter = null) {
+            eventAggregator.Publish(message, Execute.OnUIThread, filter);
         }
 
         /// <summary>
@@ -38,8 +42,9 @@
         /// </summary>
         /// <param name="eventAggregator">The event aggregator.</param>
         /// <param name = "message">The message instance.</param>
-        public static void BeginPublishOnUIThread(this IEventAggregator eventAggregator, object message) {
-            eventAggregator.Publish(message, Execute.BeginOnUIThread);
+        /// <param name = "filter">The filter instance.</param>
+        public static void BeginPublishOnUIThread(this IEventAggregator eventAggregator, object message, string filter = null) {
+            eventAggregator.Publish(message, Execute.BeginOnUIThread, filter);
         }
 
         /// <summary>
@@ -47,9 +52,10 @@
         /// </summary>
         /// <param name="eventAggregator">The event aggregator.</param>
         /// <param name="message">The message instance.</param>
-        public static Task PublishOnUIThreadAsync(this IEventAggregator eventAggregator, object message) {
+        /// <param name = "filter">The filter instance.</param>
+        public static Task PublishOnUIThreadAsync(this IEventAggregator eventAggregator, object message, string filter = null) {
             Task task = null;
-            eventAggregator.Publish(message, action => task = action.OnUIThreadAsync());
+            eventAggregator.Publish(message, action => task = action.OnUIThreadAsync(), filter);
             return task;
         }
     }
