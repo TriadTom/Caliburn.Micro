@@ -14,7 +14,7 @@
         public static void PublishOnCurrentThread(this IEventAggregator eventAggregator, object message) {
             eventAggregator.Publish(message, action => action());
         }
-
+        
         /// <summary>
         /// Publishes a message on a background thread (async).
         /// </summary>

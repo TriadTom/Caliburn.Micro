@@ -1,4 +1,6 @@
-﻿namespace Caliburn.Micro {
+﻿using System.Diagnostics;
+
+namespace Caliburn.Micro {
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -25,6 +27,11 @@
             return handlers.Any(handler => handler.Handles(messageType) & !handler.IsDead);
         }
 
+        public int HandlerCountFor(Type messageType)
+        {
+            return handlers.Where(handler => handler.Handles(messageType) & !handler.IsDead).Count();
+        }
+
         /// <summary>
         /// Subscribes an instance to all events declared through implementations of <see cref = "IHandle{T}" />
         /// </summary>
@@ -33,12 +40,16 @@
             if (subscriber == null) {
                 throw new ArgumentNullException("subscriber");
             }
-            lock(handlers) {
+            //Debug.WriteLine("Subscriber Added: " + subscriber.GetType());
+            lock (handlers) {
                 if (handlers.Any(x => x.Matches(subscriber))) {
                     return;
                 }
-
-                handlers.Add(new Handler(subscriber));
+                var handle = new Handler(subscriber, this);
+                handlers.Add(handle);
+                foreach (Type t in handle.Types) {
+                    this.PublishOnCurrentThread(new MessageAdded(t));
+                }
             }
         }
 
@@ -54,6 +65,8 @@
                 var found = handlers.FirstOrDefault(x => x.Matches(subscriber));
 
                 if (found != null) {
+                    //Debug.WriteLine("Subscriber Removed: "+subscriber.GetType());
+                    //found.RemoveEvents();
                     handlers.Remove(found);
                 }
             }
@@ -92,30 +105,54 @@
             });
         }
 
+        public class MessageRemoved {
+            public Type Type { get; }
+            public MessageRemoved(Type type) {
+                Type = type;
+            }
+        }
+
+        public class MessageAdded
+        {
+            public Type Type { get; }
+            public MessageAdded(Type type)
+            {
+                Type = type;
+            }
+        }
+
         class Handler {
+            private IEventAggregator _eventAggregator;
             readonly WeakReference reference;
             readonly Dictionary<Type, MethodInfo> supportedHandlers = new Dictionary<Type, MethodInfo>();
+            public List<Type> Types => supportedHandlers.Keys.ToList();
+            public bool IsDead => reference.Target == null;
 
-            public bool IsDead {
-                get { return reference.Target == null; }
+            ~Handler()
+            {
+                foreach (var h in supportedHandlers)
+                {
+                    //Debug.WriteLine(" Dispose Removed Type: " + h.Key.Name);
+                    _eventAggregator.PublishOnCurrentThread(new MessageRemoved(h.Key));
+                }
             }
 
-            public Handler(object handler) {
-                reference = new WeakReference(handler);
-
+            public Handler(object handler, IEventAggregator eventAggregator) {
+                _eventAggregator = eventAggregator;
+                reference = new WeakReference(handler, true);
                 var interfaces = handler.GetType().GetInterfaces()
                     .Where(x => typeof(IHandle).IsAssignableFrom(x) && x.IsGenericType());
 
                 foreach(var @interface in interfaces) {
                     var type = @interface.GetGenericArguments()[0];
-                    var method = @interface.GetMethod("Handle", new Type[] { type });
-
+                    var method = @interface.GetMethod("Handle", new[] { type });
+                    //Debug.WriteLine("Added Reference: "+reference.Target.GetType().Name+" Type: "+type.Name);
                     if (method != null) {
                         supportedHandlers[type] = method;
                     }
                 }
             }
-
+            
             public bool Matches(object instance) {
                 return reference.Target == instance;
             }

@@ -14,6 +14,14 @@
         bool HandlerExistsFor(Type messageType);
 
         /// <summary>
+        /// Number of subscribed handlers for
+        /// the message type supplied.
+        /// </summary>
+        /// <param name="messageType">The message type to check with</param>
+        /// <returns>The number of handlers</returns>
+        int HandlerCountFor(Type messageType);
+
+        /// <summary>
         ///   Subscribes an instance to all events declared through implementations of <see cref = "IHandle{T}" />
         /// </summary>
         /// <param name = "subscriber">The instance to subscribe for event publication.</param>
