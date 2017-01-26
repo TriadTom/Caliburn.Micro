@@ -1,4 +1,6 @@
 ﻿using System.Windows;
+using Caliburn.Micro;
+using SimpleInjector;
 
 namespace TestApp
 {
@@ -7,6 +9,9 @@ namespace TestApp
     /// </summary>
     public partial class App : Application
     {
-        
+        public static IEventAggregator EventAgrigator;
+        public static Container IoCContainer;
+
+
     }
 }

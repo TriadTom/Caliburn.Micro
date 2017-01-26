@@ -54,7 +54,8 @@ namespace Caliburn.Micro {
         /// Subscribes an instance to all events declared through implementations of <see cref = "IHandle{T}" />
         /// </summary>
         /// <param name = "subscriber">The instance to subscribe for event publication.</param>
-        public virtual void Subscribe(object subscriber) {
+        /// <param name="filter">filter for all message types</param>
+        public virtual void Subscribe(object subscriber, string filter = null) {
             if (subscriber == null) {
                 throw new ArgumentNullException("subscriber");
             }
@@ -66,7 +67,7 @@ namespace Caliburn.Micro {
                 var handle = new Handler(subscriber, this);
                 handlers.Add(handle);
                 foreach (Type t in handle.SupportedMessageTypes) {
-                    this.PublishOnCurrentThread(new MessageAdded(t, null));
+                    this.PublishOnCurrentThread(new MessageAdded(t, filter));
                 }
             }
         }
@@ -236,13 +237,11 @@ namespace Caliburn.Micro {
 
                 foreach (var pair in supportedHandlers)
                 {
-                    if (pair.Key.IsAssignableFrom(messageType) && (pair.Value.Filter == filter || pair.Value.Filter == null))
+                    if (!pair.Key.IsAssignableFrom(messageType) || (pair.Value.Filter != filter && pair.Value.Filter != null)) continue;
+                    var result = pair.Value.MethodInfo.Invoke(target, new[] { message });
+                    if (result != null)
                     {
-                        var result = pair.Value.MethodInfo.Invoke(target, new[] { message });
-                        if (result != null)
-                        {
-                            HandlerResultProcessing(target, result);
-                        }
+                        HandlerResultProcessing(target, result);
                     }
                 }
 
