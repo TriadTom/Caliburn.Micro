@@ -61,10 +61,8 @@ namespace Caliburn.Micro {
             }
             //Debug.WriteLine("Subscriber Added: " + subscriber.GetType());
             lock (handlers) {
-                if (handlers.Any(x => x.Matches(subscriber))) {
-                    return;
-                }
-                var handle = new Handler(subscriber, this);
+                if (handlers.Any(x => x.Matches(subscriber))) return;
+                var handle = new Handler(subscriber, this, filter);
                 handlers.Add(handle);
                 foreach (Type t in handle.SupportedMessageTypes) {
                     this.PublishOnCurrentThread(new MessageAdded(t, filter));
@@ -85,6 +83,8 @@ namespace Caliburn.Micro {
 
                 if (found != null) {
                     handlers.Remove(found);
+                    //Run after handler is removed so when Message Removed Events are fired this handler is no longer in the list.
+                    found.RemoveSuportedTypes();
                 }
             }
         }
@@ -191,8 +191,8 @@ namespace Caliburn.Micro {
                     _eventAggregator.PublishOnCurrentThread(new MessageRemoved(h.Key, h.Value.Filter));
                 }
             }
-
-            public Handler(object handler, IEventAggregator eventAggregator) {
+            
+            public Handler(object handler, IEventAggregator eventAggregator, string filter) {
                 _eventAggregator = eventAggregator;
                 reference = new WeakReference(handler, true);
                 var interfaces = handler.GetType().GetInterfaces()
@@ -203,14 +203,25 @@ namespace Caliburn.Micro {
                     var method = @interface.GetMethod("Handle", new[] { type });
                     //Debug.WriteLine("Added Reference: "+reference.Target.GetType().Name+" Type: "+type.Name);
                     if (method != null) {
-                        supportedHandlers[type] = new HandlerMethod(method);
+                        supportedHandlers[type] = new HandlerMethod(method, filter);
                     }
                 }
             }
 
-            public void SetFilter(Type messageType, string filter) {
+            public void RemoveSuportedTypes()
+            {
+                foreach (var h in supportedHandlers)
+                {
+                    _eventAggregator.PublishOnCurrentThread(new MessageRemoved(h.Key, h.Value.Filter));
+                }
+                supportedHandlers.Clear();
+            }
+
+            public void SetFilter(Type messageType, string filter)
+            {
                 var type = supportedHandlers.FirstOrDefault(pair => pair.Key.IsAssignableFrom(messageType));
-                if (type.Key != null && type.Value.Filter != filter) {
+                if (type.Key != null && type.Value.Filter != filter)
+                {
                     var oldFilter = type.Value.Filter;
                     type.Value.SetFilter(filter);
                     _eventAggregator.PublishOnCurrentThread(new MessageRemoved(type.Key, oldFilter));
